@@ -1,0 +1,225 @@
+# Viktor 框架级配置
+# 不包含任何业务信息，业务知识通过注册 API 动态注入
+# 敏感字段通过环境变量注入，格式：${ENV_VAR_NAME:default_value}
+
+# LLM OpenAI 兼容 API。
+# 默认主力模型使用 HiArt Claude：Sonnet 负责日常问答/执行阶段，Opus 负责 coding plan。
+llm:
+  # 兼容旧单供应商字段；运行时会优先使用 providers/default/fallback_order。
+  default: "hiart-claude-sonnet-4-6"
+  fallback_order:
+    - "hiart-claude-sonnet-4-6"
+    - "hiart-claude-sonnet-4-6-azure"
+    - "hiart-qwen3-max"
+    - "hiart-gemini-3-5-flash"
+  feature_provider_order:
+    coding_plan:
+      - "hiart-claude-opus-4-8"
+      - "hiart-claude-opus-4-8-azure"
+      - "hiart-claude-sonnet-4-6"
+      - "hiart-claude-sonnet-4-6-azure"
+    automated_code_review:
+      - "hiart-claude-sonnet-4-6"
+      - "hiart-claude-sonnet-4-6-azure"
+    # 需求/Bug -> 目标代码仓库的自动路由：决策较难，用强模型（Opus）。
+    issue_routing:
+      - "hiart-claude-opus-4-8"
+      - "hiart-claude-opus-4-8-azure"
+      - "hiart-claude-sonnet-4-6"
+      - "hiart-claude-sonnet-4-6-azure"
+  cooldown_sec: 60
+  providers:
+    hiart-claude-sonnet-4-6:
+      provider: "openai_compatible"
+      model: "vertex_ai/claude-sonnet-4-6"
+      api_key: "${HIART_API_KEY:}"
+      base_url: "https://llm.hiart.tech/v1"
+      temperature:
+      max_tokens: 8192
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: false
+    hiart-claude-opus-4-8:
+      provider: "openai_compatible"
+      model: "vertex_ai/claude-opus-4-8"
+      api_key: "${HIART_API_KEY:}"
+      base_url: "https://llm.hiart.tech/v1"
+      temperature:
+      max_tokens: 8192
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: false
+    hiart-claude-sonnet-4-6-azure:
+      provider: "openai_compatible"
+      model: "azure_ai/claude-sonnet-4-6"
+      api_key: "${HIART_API_KEY:}"
+      base_url: "https://llm.hiart.tech/v1"
+      temperature:
+      max_tokens: 8192
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: false
+    hiart-claude-opus-4-8-azure:
+      provider: "openai_compatible"
+      model: "azure_ai/claude-opus-4-8"
+      api_key: "${HIART_API_KEY:}"
+      base_url: "https://llm.hiart.tech/v1"
+      temperature:
+      max_tokens: 8192
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: false
+    deepseek-pro:
+      provider: "deepseek"
+      model: "deepseek-v4-pro"
+      api_key: "${DEEPSEEK_API_KEY}"
+      base_url: "https://api.deepseek.com/v1"
+      temperature: 0.1
+      max_tokens: 4096
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: true
+    kimi-k2-6:
+      provider: "openai_compatible"
+      model: "kimi-k2.6"
+      api_key: "${KIMI_REVIEWER_API_KEY:}"
+      base_url: "https://api.moonshot.cn/v1"
+      temperature: 1
+      # Kimi thinking models count reasoning_content and content together.
+      # Keep a larger budget so code review can finish reasoning and still emit JSON.
+      max_tokens: 32768
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: true
+    hiart-gemini-3-1-pro:
+      provider: "openai_compatible"
+      model: "gemini/gemini-3.1-pro-preview"
+      api_key: "${HIART_API_KEY:}"
+      base_url: "https://llm.hiart.tech/v1"
+      temperature: 0.1
+      max_tokens: 32768
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: false
+    hiart-qwen3-max:
+      provider: "openai_compatible"
+      model: "dashscope/qwen3.7-max"
+      api_key: "${HIART_API_KEY:}"
+      base_url: "https://llm.hiart.tech/v1"
+      temperature: 0.1
+      max_tokens: 32768
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: false
+    hiart-gemini-3-5-flash:
+      provider: "openai_compatible"
+      model: "gemini/gemini-3.5-flash"
+      api_key: "${HIART_API_KEY:}"
+      base_url: "https://llm.hiart.tech/v1"
+      temperature: 0.1
+      max_tokens: 32768
+      supports_tools: true
+      supports_stream: true
+      supports_thinking: false
+
+dingtalk:
+  app_key: "${DINGTALK_APP_KEY}"
+  app_secret: "${DINGTALK_APP_SECRET}"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# 网页控制台登录鉴权（内网用户名密码 + 长效 JWT）
+auth:
+  jwt_secret: "${VIKTOR_AUTH_SECRET:}"
+  token_ttl_days: ${VIKTOR_AUTH_TOKEN_TTL_DAYS:365}
+  allow_registration: ${VIKTOR_AUTH_ALLOW_REGISTRATION:true}
+
+kubernetes:
+  namespace: "${K8S_NAMESPACE:default}"
+  in_cluster: ${K8S_IN_CLUSTER:false}
+  kubeconfig_path: "${KUBECONFIG_PATH:~/.kube/config}"
+  context: "${K8S_CONTEXT:}"
+  # token 直连模式（api_server + token 同时存在时使用此模式，优先级高于 kubeconfig）
+  api_server: "${K8S_API_SERVER:}"
+  token: "${K8S_TOKEN:}"
+  ca_data: "${K8S_CA_DATA:}"
+  insecure_skip_tls_verify: "${K8S_INSECURE_SKIP_TLS_VERIFY:false}"
+
+database:
+  url: "mysql+pymysql://${VIKTOR_DB_USER:viktor}:${VIKTOR_DB_PASSWORD:change-me}@${VIKTOR_DB_HOST:127.0.0.1}:${VIKTOR_DB_PORT:3306}/${VIKTOR_DB_NAME:viktor}?charset=utf8mb4"
+
+# 阿里云 SLS 日志服务全局凭证。
+# 生产环境由 Kubernetes Secret 注入这些环境变量；具体业务日志的 project/logstore 存在 DB 注册项中。
+aliyun_sls:
+  endpoint: "${ALIYUN_SLS_ENDPOINT:}"
+  access_key_id: "${ALIYUN_SLS_ACCESS_KEY_ID:}"
+  access_key_secret: "${ALIYUN_SLS_ACCESS_KEY_SECRET:}"
+  security_token: "${ALIYUN_SLS_SECURITY_TOKEN:}"
+
+# 阿里云 OSS：默认从 ../order-api/config.yaml 的 oss 节读取。
+# 生产环境可用以下环境变量覆盖；上传对象统一放在 viktor/ 前缀下。
+oss:
+  access_key: "${VIKTOR_OSS_ACCESS_KEY:}"
+  secret_key: "${VIKTOR_OSS_SECRET_KEY:}"
+  end_point: "${VIKTOR_OSS_ENDPOINT:}"
+  end_point_public: "${VIKTOR_OSS_ENDPOINT_PUBLIC:}"
+  bucket: "${VIKTOR_OSS_BUCKET:}"
+  upload_prefix: "${VIKTOR_OSS_PREFIX:viktor}"
+  signed_url_ttl_seconds: ${VIKTOR_OSS_SIGNED_URL_TTL:2592000}
+
+file_upload:
+  max_file_size_mb: ${VIKTOR_FILE_MAX_UPLOAD_MB:50}
+  extracted_max_chars: ${VIKTOR_FILE_EXTRACT_MAX_CHARS:12000}
+  preview_max_chars: ${VIKTOR_FILE_PREVIEW_MAX_CHARS:2000}
+  max_excel_rows: ${VIKTOR_FILE_MAX_EXCEL_ROWS:200}
+  max_excel_cols: ${VIKTOR_FILE_MAX_EXCEL_COLS:30}
+
+agent:
+  # Webchat / 钉钉主诊断 Agent 的最大「LLM 思考 + 工具执行」循环数。
+  # 注意它不同于 coding_agent.max_steps；复杂数据分析任务可通过 AGENT_MAX_ITERATIONS 覆盖。
+  max_iterations: ${AGENT_MAX_ITERATIONS:30}
+  # 同一轮多个独立 tool call 的并发上限
+  tool_max_concurrency: 6
+  # 单个工具外层等待超时；要略大于 sql_timeout_sec，避免掩盖 SQL 层返回的收窄建议
+  tool_timeout_sec: ${AGENT_TOOL_TIMEOUT_SEC:75}
+  # 本轮工具超时累计达到该值后停止继续调用工具，转为无工具收口/让用户收窄范围
+  max_tool_timeouts_per_turn: ${AGENT_MAX_TOOL_TIMEOUTS_PER_TURN:2}
+  query_result_limit: 50
+  # Free-SQL 安全上限：单条 SQL 最大字符数，超过拒绝
+  max_sql_length: 4000
+  # Free-SQL 数据库级执行超时；超时后工具返回失败，引导模型换更窄口径
+  sql_timeout_sec: ${AGENT_SQL_TIMEOUT_SEC:60}
+  # Free-SQL 执行前先 EXPLAIN，预估大范围全表扫描时拒绝执行
+  sql_explain_max_estimated_rows: 100000
+  # schema 自省缓存 TTL（秒），信息模式结果缓存有效期
+  schema_cache_ttl: 300
+  # sample_rows 抽样工具允许的 LIMIT 最大值
+  sample_row_limit: 20
+
+intent:
+  # 主诊断 Agent 的 project-scoped glossary-first 意图识别。
+  enabled: ${INTENT_ENABLED:true}
+  glossary_top_k: ${INTENT_GLOSSARY_TOP_K:10}
+  knowledge_top_k: ${INTENT_KNOWLEDGE_TOP_K:8}
+
+agent_audit:
+  # 生产默认开启：完整 trace 仅 admin 可见，写入前统一脱敏。
+  enabled: ${AGENT_AUDIT_ENABLED:true}
+  retention_days: ${AGENT_AUDIT_RETENTION_DAYS:7}
+  max_payload_string_length: ${AGENT_AUDIT_MAX_PAYLOAD_STRING_LENGTH:12000}
+
+context_compaction:
+  enabled: ${CONTEXT_COMPACTION_ENABLED:true}
+  threshold_tokens: ${CONTEXT_COMPACTION_THRESHOLD_TOKENS:30000}
+  target_tokens: ${CONTEXT_COMPACTION_TARGET_TOKENS:12000}
+  keep_recent_turns: ${CONTEXT_COMPACTION_KEEP_RECENT_TURNS:3}
+
+# SSH 隧道全局默认值：Database Connector 注册时 ssh_tunnel 字段缺省的项从此回退
+# ssh_tunnel 为 None 表示直连（默认），结构体表示开启隧道
+ssh_tunnel:
+  jump_host: "${SSH_TUNNEL_JUMP_HOST:}"
+  jump_port: ${SSH_TUNNEL_JUMP_PORT:22}
+  username: "${SSH_TUNNEL_USERNAME:}"
+  private_key: "${SSH_TUNNEL_PRIVATE_KEY:}"
