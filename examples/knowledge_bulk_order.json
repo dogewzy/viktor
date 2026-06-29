@@ -1,0 +1,32 @@
+{
+  "project_id": "order-service",
+  "notes": [
+    {
+      "id": "tz-utc-storage",
+      "kind": "schema_convention",
+      "scope": "order-db",
+      "title": "所有时间字段按 UTC 存储",
+      "content": "order-db 中 created_at / updated_at / paid_at 等 DateTime 字段均以 UTC 时区写入。做日/时维度聚合时应先转换到业务时区，例如 `DATE(CONVERT_TZ(created_at, '+00:00', '+08:00'))`。",
+      "tags": ["timezone", "sql", "date-agg"],
+      "enabled": true
+    },
+    {
+      "id": "order-status-semantics",
+      "kind": "field_semantics",
+      "scope": "order-db.orders.status",
+      "title": "订单状态字段需要结合支付状态判断",
+      "content": "orders.status 表示履约状态，payment_status 表示支付状态。排查订单是否可履约时需要同时查看这两个字段，不能只用单个状态字段判断。",
+      "tags": ["order", "status"],
+      "enabled": true
+    },
+    {
+      "id": "daily-paid-order-metric",
+      "kind": "metric_definition",
+      "scope": "order-db.orders",
+      "title": "日支付订单量口径",
+      "content": "日支付订单量 = 按业务时区日期统计 payment_status='paid' 且 paid_at 落入目标时间范围的订单数。若要分析履约成功率，再叠加 fulfillment_status 过滤。",
+      "tags": ["metric", "daily", "order"],
+      "enabled": true
+    }
+  ]
+}
